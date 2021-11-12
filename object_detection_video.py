@@ -76,7 +76,7 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
     cap = cv2.VideoCapture(video_src) # type 0 for live webcam feed detection
     spatial_info = pd.DataFrame({'Person Count':[0],
                                   'Activity Indicator':[False]})
-    spatial_info.to_csv('Data Files/spatial.csv',sep=',',index=True, index_label='Time') # Begin with empty csv file
+    spatial_info.to_csv('Data Files/spatial.csv',sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     while True:
         ret, frame = cap.read()
         cap_v = cap
