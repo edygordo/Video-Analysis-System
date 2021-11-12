@@ -91,7 +91,7 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
         people_in_frame = Person_count(ClassesPresent=ClassIndex, ClassLabels=classLabels)
         Motion = motion_present(frame1=frame, frame2=frame2)
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion] # update the dataframe
-        spatial_info.to_csv(path_or_buf='Data Files/spatial.csv',sep=',',index=True, index_label='Time') # update the csv
+        spatial_info.to_csv(path_or_buf='Data Files/spatial.csv',sep=',',index=True, index_label='Frame Number') # update the csv
 
         # data_file = pd.read_csv('Data Files/spatial.csv',sep=',',index_col=0) # read the csv
         # x_vals = data_file.index.values # get x values
