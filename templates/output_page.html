@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Processing</title>
+{% endblock %}
+
+{% block content %}
+<h1>Live graph</h1>
+<div style="display: flex; justify-content: center;">
+  {{ script|safe }}
+</div>
+{% endblock %}

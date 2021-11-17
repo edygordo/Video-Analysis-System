@@ -1,11 +1,11 @@
+from numpy import save
 import pandas as pd
-import numpy as np
+import Live_graph_creator as creator
 import cv2
 import matplotlib.pyplot as plt
 from mpu.string import str2bool
-from multiprocessing import Process, Value, Array, Lock
-import sys
 from matplotlib.animation import FuncAnimation
+import global_holder
 
 def load_pretrained_model():
     config_file = 'Object Detection/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt' # configuration file
@@ -72,16 +72,29 @@ def motion_present(frame1, frame2, motion_thresh=900):
             return True # some motion is present
     return False # no motion present in frame
 
-def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4'): # this file generates a csv datafile in REAL TIME
+def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4',csv_location = 'Data Files/spatial.csv', start_frame=1): # this file generates a csv datafile in REAL TIME
+    """ 
+    Input to the function:-
+     1. Path of the video file uploaded by user
+     2. CSV Location of file to store statistics to
+     3. Start Frame of video
+     4. After how many frames this function should stop
+    
+    Output from the function:-
+     1. Processed frame
+     2. Script
+     3. Div
+    """
     cap = cv2.VideoCapture(video_src) # type 0 for live webcam feed detection
+    cap.set(cv2.CAP_PROP_POS_FRAMES,start_frame-1)
     spatial_info = pd.DataFrame({'Person Count':[0],
                                   'Activity Indicator':[False]})
-    spatial_info.to_csv('Data Files/spatial.csv',sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
+    spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     while True:
-        ret, frame = cap.read()
+        _, frame = cap.read()
         cap_v = cap
-        _, frame2 = cap_v.read()
-        if ret == False: # Video ended
+        ret2, frame2 = cap_v.read()
+        if ret2 == False: # Video ended
             break
 
         
@@ -91,52 +104,20 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
         people_in_frame = Person_count(ClassesPresent=ClassIndex, ClassLabels=classLabels)
         Motion = motion_present(frame1=frame, frame2=frame2)
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion] # update the dataframe
-        spatial_info.to_csv(path_or_buf='Data Files/spatial.csv',sep=',',index=True, index_label='Frame Number') # update the csv
-
-        # data_file = pd.read_csv('Data Files/spatial.csv',sep=',',index_col=0) # read the csv
-        # x_vals = data_file.index.values # get x values
-        # y_vals_people = data_file['Person Count'].values # get person count values
-        # plt.cla()
-        # plt.plot(x_vals, y_vals_people, label='Live Person Count')
-        # plt.legend(loc='upper left')
-        # plt.tight_layout()
-
-
+        #with global_holder.lock():
+        spatial_info.to_csv(path_or_buf=csv_location,sep=',',index=True, index_label='Frame Number') # update the csv
         if(len(ClassIndex) != 0):
             for ClassInd, conf, boxes in zip(ClassIndex.flatten(), confidence.flatten(), bbox):
                 cv2.rectangle(frame, boxes, color=(255,0,0),thickness=2 )
                 cv2.putText(frame, classLabels[ClassInd-1],(boxes[0]+10, boxes[1]+40), font, fontScale=font_scale,color=(0,255,0))
         else:
             pass
-        cv2.imshow('Real Time object detection using MobileNet SSD', frame)
-
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            break
-
-    cv2.destroyAllWindows()
-
-
-if __name__ == '__main__':
-    model, classLabels = load_pretrained_model() # Load a pre-trained model
-    setInputParams(model=model) # Set input parameters to the model
-    #ani = FuncAnimation(plt.gcf(), live_person_count, interval=1000)
-    
-    #ani = FuncAnimation(plt.gcf(), live_person_count,interval=1000)
-    # p1 = Process(target=real_time_detection(model,classLabels))
-    # p1.start()
-    # p2 = Process(target=run_animation(model, classLabels))
-    # p2.start()
-    #real_time_detection(model=model, classLabels=classLabels) # start generating a live csv file
-    #ani = FuncAnimation(plt.gcf(), live_person_count, interval=1000, frames=1000)
-    # real_time detection and run_animation must run parallely
-    p1 = Process(target=real_time_detection(model, classLabels))
-    p2 = Process(target=run_animation(model, classLabels))
-
-    p2.start()
-    p1.start()
-
-    p1.join()
-    p2.join()
-
-    plt.show()
+        #cv2.imshow('Real Time object detection using MobileNet SSD', frame)
+        # script, div = creator.spit_html_embedding(statistics_path=csv_location, save_locally=True)
+        # with global_holder.lock():
+        #     global_holder.Output_frame = frame
+        #     global_holder.Output_div = div
+        #     global_holder.Output_script = script
+        
+    #cv2.destroyAllWindows()
+    return frame
