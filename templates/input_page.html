@@ -7,24 +7,6 @@
 {% block content %}
 <h3 style="font-family: 'Times New Roman', Times, serif;text-align: center;color: brown;"> Welcome to the website please put in the link of video or upload the video which you want to analyse. </h3>
 <center><img src="{{img}}" alt="Video Analysis photo"> </center>
-<center><p>
-	{% with messages = get_flashed_messages() %}
-	  {% if messages %}
-		<ul>
-		{% for message in messages %}
-		  <li>{{ message }}</li>
-		{% endfor %}
-		</ul>
-	  {% endif %}
-	{% endwith %}
-</p>
-{% if filename %}
-	<div style="margin: 10px auto;">
-		<video autoplay="autoplay" controls="controls" preload="preload">
-			<source src="{{ url_for('display_video', filename=filename) }}" type="video/mp4"></source>
-		</video>
-	</div>
-{% endif %}
 
 <form action="/action_page" method="POST" enctype="multipart/form-data" style="text-align: center;color: blueviolet;"> <!--- redirect to another page where video processing should take place  -->
     <label for="fname">
@@ -45,7 +27,7 @@
     <label for="video">
         <p style="text-align: center;" title="only mp4 allowed"> Please upload your video here:- </p>
     </label>
-    <input type="file" id="myfile" name="video" accept="video/.mp4"> <br><br>
+    <input type="file" id="myfile" name="file" accept="video/.mp4" autocomplete="off" required> <br><br>
     <input type="submit" value="submit">
     <input type="reset"><br><br><br>
     <a href="https://onlinevideoconverter.com">To convert your video to mp4 format click here !</a>
