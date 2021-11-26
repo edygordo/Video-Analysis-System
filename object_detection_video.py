@@ -4,6 +4,9 @@ import cv2
 import matplotlib.pyplot as plt
 from mpu.string import str2bool
 from matplotlib.animation import FuncAnimation
+from PIL import Image
+import numpy as np
+import sys
 
 def load_pretrained_model():
     config_file = 'Object Detection/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt' # configuration file
@@ -86,13 +89,18 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
     Output from the function:-
      1. Processed frame
     """
+    #np.set_printoptions(threshold = sys.maxsize)
     cap = cv2.VideoCapture(video_src) # type 0 for live webcam feed detection
     cap.set(cv2.CAP_PROP_POS_FRAMES,start_frame-1)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height =int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps_video = cap.get(cv2.CAP_PROP_FPS)
+    fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
+    out = cv2.VideoWriter('videos/processed/my_video_feed.avi', fourcc, fps_video, (width, height))
     spatial_info = pd.DataFrame({'Person Count':[0],
                                   'Activity Indicator':[False],
                                   'Seconds':[0]})
     spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
-    fps_video = cap.get(cv2.CAP_PROP_FPS)
     Start_time = time.time()
     while True:
         _, frame = cap.read()
@@ -107,17 +115,24 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
         font = cv2.FONT_HERSHEY_PLAIN
         people_in_frame = Person_count(ClassesPresent=ClassIndex, ClassLabels=classLabels)
         Motion = motion_present(frame1=frame, frame2=frame2)
+        if(len(ClassIndex) != 0):
+            for ClassInd, conf, boxes in zip(ClassIndex.flatten(), confidence.flatten(), bbox):
+                if ClassInd > 0 and ClassInd <= 80:
+                    cv2.rectangle(frame, boxes, color=(255,0,0),thickness=2 )
+                    cv2.putText(frame, classLabels[ClassInd-1],(boxes[0]+10, boxes[1]+40), font, fontScale=font_scale,color=(0,255,0))
+                else:
+                    pass
+        else:
+            pass
+        #processed_frame = frame.reshape(-1,1).T
+        #out.write(frame) # write the processed frame to a local folder
+        cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         Seconds_passed = time.time() - Start_time
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion, Seconds_passed] # update the dataframe
         #with global_holder.lock():
         spatial_info.to_csv(path_or_buf=csv_location,sep=',',index=True, index_label='Frame Number') # update the csv
-        if(len(ClassIndex) != 0):
-            for ClassInd, conf, boxes in zip(ClassIndex.flatten(), confidence.flatten(), bbox):
-                cv2.rectangle(frame, boxes, color=(255,0,0),thickness=2 )
-                cv2.putText(frame, classLabels[ClassInd-1],(boxes[0]+10, boxes[1]+40), font, fontScale=font_scale,color=(0,255,0))
-        else:
-            pass
-        cv2.imshow('Real Time object detection using MobileNet SSD', frame)
+        #out.release
+        #cv2.imshow('Real Time object detection using MobileNet SSD', frame)
         # script, div = creator.spit_html_embedding(statistics_path=csv_location, save_locally=True)
         # with global_holder.lock():
         #     global_holder.Output_frame = frame

@@ -2,17 +2,19 @@ import threading
 from bokeh.models.sources import ColumnDataSource
 from bokeh.server.server import Server
 import cv2
+import numpy
 from tornado.ioloop import IOLoop
 from bokeh.embed import server_document
 from bokeh.resources import INLINE
 from bokeh.themes.theme import Theme
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, Response
 from werkzeug.utils import secure_filename
 import object_detection_video as obj_det
 import os
 import pandas as pd
 import cProfile
 from bokeh.plotting import figure
+import numpy as np
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -20,6 +22,27 @@ app.secret_key = "secret key"
 vidFolder = os.path.join('static')
 app.config['UPLOAD_FOLDER'] = vidFolder
 app.config['MAX _CONTENT_LENGTH'] = 100*1024*1024
+
+def generate_frames():
+    while True:
+        Status = cv2.imread('/videos/processed/my_video_feed.jpg')
+        if Status is not None:
+            ret, frame = Status
+            if ret is True:
+                _, buffer = cv2.imencode('.jpg',frame)
+                frame = buffer.tobytes()
+            else:
+                pass
+        else:
+            frame = np.zeros((340,640,3),dtype=int)
+        yield(b'--frame\r\n'
+                            b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            
+
+@app.route('/video')
+def video():
+    return Response(generate_frames(),mimetype='image/jpeg')
+
 
 def bkapp(doc):
     DataSource = ColumnDataSource(dict(Frame_Number=[],Person_Present=[],Frame_Active=[],Seconds=[]))
@@ -88,7 +111,7 @@ def action(): # currently independent of user uploaded video
         thread1 = threading.Thread(target=obj_det.real_time_detection, kwargs={'model':model,'classLabels':classLabels,
         'video_src':video_src})
         thread1.start() 
-        script = server_document('http://localhost:5006/bkapp') # url to bokeh application
+        script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
         return render_template('output_page.html',script = script, template="Flask",filename = filename)
 
 def bk_worker():
