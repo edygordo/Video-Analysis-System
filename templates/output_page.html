@@ -33,24 +33,16 @@
   </video>
 </div>
 
+<!-- Displaying Live Video Feed -->
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8  offset-lg-2">
+            <h3 class="mt-5">Live Streaming</h3>
+            <img src="{{ url_for('video_feed') }}" width="50%">
+        </div>
+    </div>
+</div>
 
 
-<!-- Display the video which is being processed-->
- <div id="process">
-	<img src="{{url_for('video') }}" width="50%"/>	
-</div>
-<body onload="myfun()">
-<div id="process">
-</div>
-<script>
-	function myfun(){
-		var xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function(){
-			if(this.readyState == 4 && this.status == 200){
-				
-			}
-		};
-	}
-</script>
-</body>
+
 {% endblock %}
