@@ -64,6 +64,21 @@ def Person_count(ClassesPresent, ClassLabels): # Returns person present given Cl
                 pass
     return Person_present
 
+def Car_count(ClassesPresent, ClassLabels): # Returns person present given ClassIndex present and all class labels
+    Car_present = 0
+    if len(ClassesPresent) == 0:
+        return Car_present
+    else: # Some classes are present
+        for idx in ClassesPresent:
+            idx = int(idx)
+            if idx < 1 or idx >80:
+                pass
+            elif ClassLabels[idx-1] == 'car':
+                Car_present = Car_present + 1
+            else:
+                pass
+    return Car_present
+
 def motion_present(frame1, frame2, motion_thresh=900):
     diff = cv2.absdiff(frame1, frame2) # Find difference between successive frames
     gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY) # color the diff image Gray
@@ -95,6 +110,8 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height =int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps_video = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    length_of_video = int(total_frames/fps_video)
     fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
     out = cv2.VideoWriter('videos/processed/my_video_feed.avi', fourcc, fps_video, (width, height))
     spatial_info = pd.DataFrame({'Person Count':[0],
@@ -102,7 +119,8 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
                                   'Seconds':[0]})
     spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     Start_time = time.time()
-    while True:
+    x = int(total_frames)
+    while x:
         _, frame = cap.read()
         cap_v = cap
         ret2, frame2 = cap_v.read()
@@ -138,6 +156,6 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
         #     global_holder.Output_frame = frame
         #     global_holder.Output_div = div
         #     global_holder.Output_script = script
-        
+        x = x-1
     #cv2.destroyAllWindows()
     return frame

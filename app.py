@@ -1,4 +1,7 @@
+import time
 import threading
+from bokeh.models.glyphs import Image
+from bokeh.models.layouts import Panel, Tabs
 from bokeh.models.sources import ColumnDataSource
 from bokeh.server.server import Server
 import cv2
@@ -7,6 +10,7 @@ from tornado.ioloop import IOLoop
 from bokeh.embed import server_document
 from bokeh.resources import INLINE
 from bokeh.themes.theme import Theme
+from bokeh.models import ImageURL,LinearAxis, Range1d, Plot
 from flask import Flask, render_template, request, flash, redirect, url_for, Response
 from werkzeug.utils import secure_filename
 import object_detection_video as obj_det
@@ -14,7 +18,16 @@ import os
 import pandas as pd
 import cProfile
 from bokeh.plotting import figure
-import numpy as np
+from django .shortcuts import render
+
+x = 5
+
+def update_x():
+    while True:
+        x = x+1
+        time.sleep(1)
+
+
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -25,28 +38,35 @@ app.config['MAX _CONTENT_LENGTH'] = 100*1024*1024
 
 def generate_frames():
     while True:
-        Status = cv2.imread('/videos/processed/my_video_feed.jpg')
+        video_photo = os.path.join(os.path.join('videos'),'processed/my_video_feed.jpg')
+        Status = cv2.imread(video_photo)
+        #frame = cv2.VideoCapture()
         if Status is not None:
             ret, frame = Status
+            print(f'The frame type is:-type{frame}. Frame is:-{frame}')
             if ret is True:
-                _, buffer = cv2.imencode('.jpg',frame)
-                frame = buffer.tobytes()
-            else:
-                pass
-        else:
-            frame = np.zeros((340,640,3),dtype=int)
-        yield(b'--frame\r\n'
-                            b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            
+                (flag, encodedImage) = cv2.imencode('.jpg',frame)
+                if not flag:
+                    continue
+        
+            yield(b'--frame\r\n'b'Content-Type: multipart /image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+
+def generate_people_count():
+    while True:
+        last_row = pd.read_csv('Data Files/spatial.csv').iloc[-1]
+        Curr_frame, PersonCount, ActivityIndicator, Seconds = last_row[0], last_row[1], last_row[2], last_row[3]
+
 
 @app.route('/video')
 def video():
-    return Response(generate_frames(),mimetype='image/jpeg')
+    return Response(generate_frames(),mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 def bkapp(doc):
     DataSource = ColumnDataSource(dict(Frame_Number=[],Person_Present=[],Frame_Active=[],Seconds=[]))
-    p = figure(width=900, height=350) # A figure on which plots will be generated
+
+                    ### Live Chart Creation ###
+    p = figure(title='Live Analysis of video',width=900, height=350) # A figure on which plots will be generated
     p.circle(x="Seconds",y="Person_Present",source=DataSource)
     p.line(x="Seconds",y="Person_Present", source=DataSource, legend_label="Person Counter", line_width=2, line_color="blue")
     p.step(x="Seconds",y="Frame_Active", source=DataSource, legend_label="Frame Active", line_width=1, line_color="red")
@@ -55,6 +75,41 @@ def bkapp(doc):
     p.legend.click_policy="hide"
     p.xaxis.axis_label = "Seconds"
     p.yaxis.axis_label = "Person Count"
+                    ### Live Chart Creation ###
+
+                    ### Proccessed Video Frames ###
+    # url = "http://localhost:5006/bkapp/videos/processed/my_video_feed.jpg"
+    # url = "videos"
+    # url = "https://static.bokeh.org/logos/logo.png"
+    #url = url_for('video')
+    # N = 5
+    # source = ColumnDataSource(dict(
+    # url = [url]*N,
+    # x1  = np.linspace(  0, 150, N),
+    # y1  = np.linspace(  0, 150, N),
+    # w1  = np.linspace( 10,  50, N),
+    # h1  = np.linspace( 10,  50, N),
+    # x2  = np.linspace(-50, 150, N),
+    # y2  = np.linspace(  0, 200, N),
+    # ))
+    # xdr = Range1d(start=-100, end=200)
+    # ydr = Range1d(start=-100, end=200)
+    # #plot = Plot(
+    #title="Mobile Net SSD Model", x_range=xdr, y_range=ydr, width=1020, height=720,
+    #min_border=0, toolbar_location=None)
+    #image1 = ImageURL(url="url", x="x1", y="y1", w="w1", h="h1", anchor="center")
+    #plot.add_glyph(source, image1)
+    #- plot = figure(x_range=(0, 1), y_range=(0, 1))
+    #- plot.image_url(url=['videos/processed/my_video_feed.jpg'], x=0, y=1, w=0.8, h=0.6)
+    #xaxis = LinearAxis()
+    #plot.add_layout(xaxis, 'below')
+    #yaxis = LinearAxis()
+    #plot.add_layout(yaxis,'left')
+
+            # Forming tabs of figure
+    Live_chart = Panel(child = p, title="Live Chart Analysis")
+    #Proccessed_video = Panel(child = plot, title="Processed Frames")
+    tabs = Tabs(tabs=[Live_chart])
 
     def update():
         # Need to update source stream of the figure
@@ -66,7 +121,11 @@ def bkapp(doc):
         ,Frame_Active=[ActivityIndicator], Seconds=[Seconds])
         DataSource.stream(new_data,rollover=200)
         
-    doc.add_root(p)
+        #image1 = ImageURL(url="url",retry_attempts=10, x="x1", y="y1", w="w1", h="h1", anchor="center")
+        #plot.add_glyph(source, image1)
+        #plot.image_url(url=['videos/processed/my_video_feed.jpg'], x=0, y=1, w=0.8, h=0.6)
+
+    doc.add_root(tabs)
     doc.add_periodic_callback(update,1000)
     #doc.theme = Theme(filename="theme.yaml")
 
@@ -112,6 +171,7 @@ def action(): # currently independent of user uploaded video
         'video_src':video_src})
         thread1.start() 
         script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
+        video_photo = os.path.join(app.config['UPLOAD_FOLDER'],'img/video_analysis.jpeg')
         return render_template('output_page.html',script = script, template="Flask",filename = filename)
 
 def bk_worker():
