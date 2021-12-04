@@ -98,7 +98,9 @@ def motion_present(frame1, frame2, motion_thresh=900):
     return False # no motion present in frame
 
 def generate_processed_frame(model,frame, classLabels):
+    prev_frame_time = time.time()
     ClassIndex, confidence, bbox = model.detect(frame, confThreshold=0.6)
+    next_frame_time = time.time()
     font_scale = 3
     font = cv2.FONT_HERSHEY_PLAIN
     if(len(ClassIndex) != 0):
@@ -110,7 +112,12 @@ def generate_processed_frame(model,frame, classLabels):
                 pass
     else:
         pass
+    fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
+    cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
     return frame
+
+def frames_to_seconds(frame_number, fps_video):
+    return (float)(1/fps_video)*(frame_number)
 
 def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4',csv_location = 'Data Files/spatial.csv', start_frame=1): # this file generates a csv datafile in REAL TIME
 
@@ -123,7 +130,6 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
     Output from the function:-
      1. Processed frame
     """
-    #np.set_printoptions(threshold = sys.maxsize)
     cap = cv2.VideoCapture(video_src) # type 0 for live webcam feed detection
     cap.set(cv2.CAP_PROP_POS_FRAMES,start_frame-1)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -139,15 +145,15 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
     spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     Start_time = time.time()
     x = int(total_frames)
-    print(f'Total frames are:-{x}')
-    while x:
+    y = 0
+    while True:
         _, frame = cap.read()
         cap_v = cap
         ret2, frame2 = cap_v.read()
         if ret2 == False: # Video ended
             break
 
-        
+        prev_frame_time = time.time()
         ClassIndex, confidence, bbox = model.detect(frame, confThreshold=0.6)
         font_scale = 3
         font = cv2.FONT_HERSHEY_PLAIN
@@ -164,8 +170,12 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
             pass
         #processed_frame = frame.reshape(-1,1).T
         #out.write(frame) # write the processed frame to a local folder
+        next_frame_time = time.time()
+        fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
+        cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
-        Seconds_passed = time.time() - Start_time
+        Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
+        y = y+1
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion, Seconds_passed] # update the dataframe
         #with global_holder.lock():
         spatial_info.to_csv(path_or_buf=csv_location,sep=',',index=True, index_label='Frame Number') # update the csv
@@ -199,9 +209,10 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
     out = cv2.VideoWriter('videos/processed/my_video_feed.avi', fourcc, fps_video, (width, height))
     spatial_info = pd.DataFrame({'Person Count':[0],
                                   'Activity Indicator':[False],
-                                  'Seconds':[0]})
+                                  'Seconds':[0.0]})
     spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     Start_time = time.time()
+    y = 0
     while True:
         _, frame = cap.read()
         cap_v = cap
@@ -209,7 +220,7 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
         if ret2 == False: # Video ended
             break
 
-        
+        prev_frame_time = time.time()
         ClassIndex, confidence, bbox = model.detect(frame, confThreshold=0.6)
         font_scale = 3
         font = cv2.FONT_HERSHEY_PLAIN
@@ -226,8 +237,13 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
             pass
         #processed_frame = frame.reshape(-1,1).T
         #out.write(frame) # write the processed frame to a local folder
+        next_frame_time = time.time()
+        fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
-        Seconds_passed = time.time() - Start_time
+        cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
+        cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
+        Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
+        y = y+1
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion, Seconds_passed] # update the dataframe
         #with global_holder.lock():
         spatial_info.to_csv(path_or_buf=csv_location,sep=',',index=True, index_label='Frame Number') # update the csv

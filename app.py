@@ -206,6 +206,7 @@ def action(): # currently independent of user uploaded video
             script = online_processing(request=request)
             return render_template('output_page_live.html',script = script, template="Flask")
     else:
+        camera.release()
         script, filename = offline_processing(request=request)
         return render_template('output_page.html',script = script, template="Flask",filename = filename)
 
