@@ -165,7 +165,7 @@ def online_processing(request):
     width  = my_video.get(cv2.CAP_PROP_FRAME_WIDTH)
     #print(f'Video Height is:-{height} and width is:- {width}')
     obj_det.setInputParams(model=model,width=width,height=height) # Set input parameters to the model
-    thread1 = threading.Thread(target=obj_det.real_time_detection_live, kwargs={'model':model,'classLabels':classLabels})
+    thread1 = threading.Thread(target=obj_det.online_processing, kwargs={'model':model,'classLabels':classLabels})
     thread1.start() 
     script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
     return script
@@ -194,7 +194,7 @@ def offline_processing(request):
         width  = my_video.get(cv2.CAP_PROP_FRAME_WIDTH)
         #print(f'Video Height is:-{height} and width is:- {width}')
         obj_det.setInputParams(model=model,width=width,height=height) # Set input parameters to the model
-        thread1 = threading.Thread(target=obj_det.real_time_detection, kwargs={'model':model,'classLabels':classLabels,
+        thread1 = threading.Thread(target=obj_det.offline_processing, kwargs={'model':model,'classLabels':classLabels,
         'video_src':video_src})
         thread1.start() 
         script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
@@ -204,7 +204,7 @@ def offline_processing(request):
 def action(): # currently independent of user uploaded video
     if 'processing_type_live' in request.form.keys():
             script = online_processing(request=request)
-            return render_template('output_page.html',script = script, template="Flask")
+            return render_template('output_page_live.html',script = script, template="Flask")
     else:
         script, filename = offline_processing(request=request)
         return render_template('output_page.html',script = script, template="Flask",filename = filename)

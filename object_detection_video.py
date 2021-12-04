@@ -112,7 +112,7 @@ def generate_processed_frame(model,frame, classLabels):
         pass
     return frame
 
-def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4',csv_location = 'Data Files/spatial.csv', start_frame=1): # this file generates a csv datafile in REAL TIME
+def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4',csv_location = 'Data Files/spatial.csv', start_frame=1): # this file generates a csv datafile in REAL TIME
 
     """ 
     Input to the function:-
@@ -139,6 +139,7 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
     spatial_info.to_csv(csv_location,sep=',',index=True, index_label='Frame Number') # Begin with empty csv file
     Start_time = time.time()
     x = int(total_frames)
+    print(f'Total frames are:-{x}')
     while x:
         _, frame = cap.read()
         cap_v = cap
@@ -179,7 +180,7 @@ def real_time_detection(model, classLabels, video_src='videos/street_video_1.mp4
     #cv2.destroyAllWindows()
     return frame
 
-def real_time_detection_live(model, classLabels, video_src=0,csv_location = 'Data Files/spatial.csv'): # this file generates a csv datafile in REAL TIME
+def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files/spatial.csv'): # this file generates a csv datafile in REAL TIME
     """ 
     Input to the function:-
      1. Path of the video file uploaded by user
