@@ -113,7 +113,10 @@ def generate_processed_frame(model,frame, classLabels):
     else:
         pass
     fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
+    people_in_frame = Person_count(ClassesPresent=ClassIndex, ClassLabels=classLabels)
+    PeoplePresent = "People in Frame:- " + str(people_in_frame)
     cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
+    cv2.putText(frame,PeoplePresent,(40,100),font,2,(0,255,0),2)
     return frame
 
 def frames_to_seconds(frame_number, fps_video):
@@ -173,6 +176,8 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
         next_frame_time = time.time()
         fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
         cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
+        PeoplePresent = "People in Frame:- " + str(people_in_frame)
+        cv2.putText(frame,PeoplePresent,(40,100),font,2,(0,255,0),2)
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
         y = y+1
@@ -241,6 +246,8 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
         fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
+        PeoplePresent = "People in Frame:- " + str(people_in_frame)
+        cv2.putText(frame,PeoplePresent,(40,100),font,2,(0,255,0),2)
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
         y = y+1

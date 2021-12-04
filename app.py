@@ -29,9 +29,9 @@ vidFolder = os.path.join('static')
 app.config['UPLOAD_FOLDER'] = vidFolder
 app.config['MAX _CONTENT_LENGTH'] = 100*1024*1024
 
-camera = cv2.VideoCapture(0)
 
 def gen_frames():
+    camera = cv2.VideoCapture(0)
     model, classLabels = obj_det.load_pretrained_model() # Load a pre-trained model
     while True:
         success, frame = camera.read()
@@ -167,7 +167,7 @@ def online_processing(request):
     obj_det.setInputParams(model=model,width=width,height=height) # Set input parameters to the model
     thread1 = threading.Thread(target=obj_det.online_processing, kwargs={'model':model,'classLabels':classLabels})
     thread1.start() 
-    script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
+    script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->To server localhost
     return script
 
 def offline_processing(request):
@@ -197,7 +197,7 @@ def offline_processing(request):
         thread1 = threading.Thread(target=obj_det.offline_processing, kwargs={'model':model,'classLabels':classLabels,
         'video_src':video_src})
         thread1.start() 
-        script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->0.0.0.0
+        script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->To server localhost 
         return script, filename
 
 @app.route('/action_page', methods=["POST"])
@@ -206,7 +206,7 @@ def action(): # currently independent of user uploaded video
             script = online_processing(request=request)
             return render_template('output_page_live.html',script = script, template="Flask")
     else:
-        camera.release()
+        #camera.release()
         script, filename = offline_processing(request=request)
         return render_template('output_page.html',script = script, template="Flask",filename = filename)
 
