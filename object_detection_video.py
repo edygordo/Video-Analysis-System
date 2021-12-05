@@ -172,7 +172,6 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
         else:
             pass
         #processed_frame = frame.reshape(-1,1).T
-        #out.write(frame) # write the processed frame to a local folder
         next_frame_time = time.time()
         fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
         cv2.putText(frame,fps,(40,40),font,2,(0,255,0),2)
@@ -180,6 +179,8 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
         cv2.putText(frame,PeoplePresent,(40,100),font,2,(0,255,0),2)
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
+        out.write(frame) # write the processed frame to a local folder
+        #out.write(frame) # write the processed frame to a local folder
         y = y+2
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion, Seconds_passed] # update the dataframe
         #with global_holder.lock():
@@ -193,6 +194,7 @@ def offline_processing(model, classLabels, video_src='videos/street_video_1.mp4'
         #     global_holder.Output_script = script
         x = x-1
     #cv2.destroyAllWindows()
+    out.release()
     return frame
 
 def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files/spatial.csv'): # this file generates a csv datafile in REAL TIME
@@ -241,7 +243,7 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
         else:
             pass
         #processed_frame = frame.reshape(-1,1).T
-        #out.write(frame) # write the processed frame to a local folder
+
         next_frame_time = time.time()
         fps = "FPS of Video:- " + str(int(1/(next_frame_time-prev_frame_time)))
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
@@ -250,10 +252,14 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
         cv2.putText(frame,PeoplePresent,(40,100),font,2,(0,255,0),2)
         cv2.imwrite('videos/processed/my_video_feed.jpg', frame)
         Seconds_passed = frames_to_seconds(frame_number=y,fps_video=fps_video)
+        out.write(frame) # write the processed frame to a local folder
+        #out.write(frame) # write the processed frame to a local folder
         y = y+2
         spatial_info.loc[len(spatial_info.index)] = [people_in_frame, Motion, Seconds_passed] # update the dataframe
         #with global_holder.lock():
         spatial_info.to_csv(path_or_buf=csv_location,sep=',',index=True, index_label='Frame Number') # update the csv
+        if cv2.waitKey(1) & 0xFF == ord('a'): # Press a key to stop
+            break
         #out.release
         #cv2.imshow('Real Time object detection using MobileNet SSD', frame)
         # script, div = creator.spit_html_embedding(statistics_path=csv_location, save_locally=True)
@@ -262,4 +268,5 @@ def online_processing(model, classLabels, video_src=0,csv_location = 'Data Files
         #     global_holder.Output_div = div
         #     global_holder.Output_script = script
     #cv2.destroyAllWindows()
+    out.release()
     return frame
