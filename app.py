@@ -182,7 +182,7 @@ def online_processing(request):
     obj_det.setInputParams(model=model,width=width,height=height) # Set input parameters to the model
     thread1 = threading.Thread(target=obj_det.online_processing, kwargs={'model':model,'classLabels':classLabels})
     thread1.start() 
-    script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->To server localhost
+    script = server_document('http://165.22.223.34:5006/bkapp') # url to bokeh application , localhost->To server localhost
     return script
 
 def offline_processing(request):
@@ -212,7 +212,7 @@ def offline_processing(request):
         thread1 = threading.Thread(target=obj_det.offline_processing, kwargs={'model':model,'classLabels':classLabels,
         'video_src':video_src})
         thread1.start() 
-        script = server_document('http://localhost:5006/bkapp') # url to bokeh application , localhost->To server localhost 
+        script = server_document('http://165.22.223.34:5006/bkapp') # url to bokeh application , localhost->To server localhost 
         return script, filename
 
 @app.route('/action_page', methods=["POST"])
@@ -227,7 +227,7 @@ def action(): # currently independent of user uploaded video
 
 
 def bk_worker():
-    server = Server({'/bkapp':bkapp}, io_loop=IOLoop(), allow_websocket_origin=["127.0.0.1:8000"])
+    server = Server({'/bkapp':bkapp}, io_loop=IOLoop(), allow_websocket_origin=["165.22.223.34:8003"])
     server.start()
     server.io_loop.start()
 
@@ -237,9 +237,9 @@ def gen_data():
     my_file = pd.read_csv('./Data Files/spatial.csv')
     Person_col = my_file['Person Count']
     Max_people = Person_col.max(axis=0)
-    Min_people = Person_col.min(axis=0)
-    Active_Frames = my_file['Activity Indicator']
-    Total_Frames = len(my_file)
+    # Min_people = Person_col.min(axis=0)
+    # Active_Frames = my_file['Activity Indicator']
+    # Total_Frames = len(my_file)
     Busiest_Frames = my_file.apply(extract_Frame_Number,axis=1, args=[Max_people])
     Busiest_Frames.dropna(inplace=True)
     Busiest_Frames = Busiest_Frames.to_numpy(dtype=int)
@@ -321,4 +321,4 @@ threading.Thread(target=bk_worker).start() # this thread starts bokeh app on loc
 
 if __name__ == "__main__":
 
-    app.run(debug=True, threaded = True, use_reloader=False, port=8000)
+    app.run(debug=True, threaded = True, use_reloader=False, port=8003)
