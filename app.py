@@ -1,11 +1,10 @@
 import time
 import threading
-from bokeh.models.glyphs import Image
 from bokeh.models.layouts import Panel, Tabs
 from bokeh.models.sources import ColumnDataSource
 from bokeh.server.server import Server
 import cv2
-import numpy
+import numpy as np
 from tornado.ioloop import IOLoop
 from bokeh.embed import server_document
 from bokeh.resources import INLINE
@@ -16,9 +15,9 @@ from werkzeug.utils import secure_filename
 import object_detection_video as obj_det
 import os
 import pandas as pd
-import cProfile
 from bokeh.plotting import figure
-from django .shortcuts import render
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 
@@ -28,6 +27,22 @@ app.secret_key = "secret key"
 vidFolder = os.path.join('static')
 app.config['UPLOAD_FOLDER'] = vidFolder
 app.config['MAX _CONTENT_LENGTH'] = 100*1024*1024
+
+def extract_Frame_Number(row,Person):
+    if row['Person Count'] == Person:
+        return int(row['Frame Number'])
+
+def active_frames(row):
+    if row['Activity Indicator'] == True:
+        return row
+    else:
+        return None
+    
+def inactive_frames(row):
+    if row['Activity Indicator'] == False:
+        return row
+    else:
+        return None
 
 
 def gen_frames():
@@ -215,6 +230,92 @@ def bk_worker():
     server = Server({'/bkapp':bkapp}, io_loop=IOLoop(), allow_websocket_origin=["127.0.0.1:8000"])
     server.start()
     server.io_loop.start()
+
+
+@app.route('/gen_data', methods=["POST"])
+def gen_data():
+    my_file = pd.read_csv('./Data Files/spatial.csv')
+    Person_col = my_file['Person Count']
+    Max_people = Person_col.max(axis=0)
+    Min_people = Person_col.min(axis=0)
+    Active_Frames = my_file['Activity Indicator']
+    Total_Frames = len(my_file)
+    Busiest_Frames = my_file.apply(extract_Frame_Number,axis=1, args=[Max_people])
+    Busiest_Frames.dropna(inplace=True)
+    Busiest_Frames = Busiest_Frames.to_numpy(dtype=int)
+    # Get Busiest Frames in the processed videos
+    reader = cv2.VideoCapture('./videos/processed/my_video_feed.avi') # The Processed Video frames written by Thread-1
+    Images = []
+    for frame in Busiest_Frames:
+        reader.set(cv2.CAP_PROP_POS_FRAMES,frame)
+        Images.append(reader.read())
+    Total_Images = len(Images)
+    for x in range(Total_Images):
+        im = Image.fromarray(Images[x][1])
+        im.save(f'./Data Files/Image_{x}.jpg')
+    
+    if Total_Images == 1:
+        Image1 = Image.open('./Data Files/Image_0.jpg')
+        fig, ax = plt.subplots(1,1)
+        ax.imshow(Image1, interpolation='nearest', aspect='auto')
+        ax.set_title('Frame 1')
+        #plt.show()
+
+    if Total_Images == 2:
+        Image1 = Image.open('./Data Files/Image_0.jpg')
+        Image2 = Image.open('./Data Files/Image_1.jpg')
+        fig, ax = plt.subplots(1,2)
+        ax[0].imshow(Image1, interpolation='nearest', aspect='auto')
+        ax[0].set_title('Frame 1')
+        ax[1].imshow(Image2, interpolation='nearest', aspect='auto')
+        ax[1].set_title('Frame 2')
+        #print(Image1.size)
+        #plt.show()
+
+    if Total_Images == 3:
+        Image1 = Image.open('./Data Files/Image_0.jpg')
+        Image2 = Image.open('./Data Files/Image_1.jpg')
+        Image3 = Image.open('./Data Files/Image_2.jpg')
+        fig, ax = plt.subplots(1,3)
+        ax[0].imshow(Image1, interpolation='nearest', aspect='auto')
+        ax[0].set_title('Frame 1')
+        ax[1].imshow(Image2, interpolation='nearest', aspect='auto')
+        ax[1].set_title('Frame 2')
+        ax[2].imshow(Image3, interpolation='nearest', aspect='auto')
+        ax[2].set_title('Frame 3')
+        #print(Image1.size)
+        #plt.show()
+        
+        
+    if Total_Images >= 4:
+        Image1 = Image.open('./Data Files/Image_0.jpg')
+        Image2 = Image.open('./Data Files/Image_1.jpg')
+        Image3 = Image.open('./Data Files/Image_2.jpg')
+        Image4 = Image.open('./Data Files/Image_3.jpg')
+        fig, ax = plt.subplots(2,2)
+        ax[0,0].imshow(Image1, interpolation='nearest', aspect='auto')
+        ax[0,0].set_title('Frame 1')
+        ax[0,1].imshow(Image2, interpolation='nearest', aspect='auto')
+        ax[0,1].set_title('Frame 2')
+        ax[1,0].imshow(Image3, interpolation='nearest', aspect='auto')
+        ax[1,0].set_title('Frame 3')
+        ax[1,1].imshow(Image4, interpolation='nearest', aspect='auto')
+        ax[1,1].set_title('Frame 4')
+
+    # Calculating Ideal time and Active Time
+
+    Active_frames = my_file.apply(active_frames,axis=1)
+    Active_frames.dropna(inplace=True)
+
+    InActive_frames = my_file.apply(inactive_frames,axis=1)
+    InActive_frames.dropna(inplace=True)
+
+    Interesting_ratio = len(Active_frames)/(len(Active_frames)+len(InActive_frames))
+    Interesting_ratio = float(int(Interesting_ratio*10000)/10000)
+    #print(Interesting_ratio)
+    fig.savefig('./static/img/Results.jpeg')
+    gen_res = os.path.join(app.config['UPLOAD_FOLDER'],'img/Results.jpeg')
+    return render_template('Generated_Result.html', Interesting_ratio=Interesting_ratio, gen_res=gen_res)
 
 threading.Thread(target=bk_worker).start() # this thread starts bokeh app on localhost:8000
 

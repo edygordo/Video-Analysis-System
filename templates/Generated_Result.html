@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Video Report</title>
+{% endblock %}
+
+{% block content %}
+<h1 style="text-align: center;color: black;background-color: rgb(37, 173, 25);"><i>Generated  Report</i></h1>
+
+<h2 style="text-align: center;">The busiest frames in the videos captured were</h2>
+<center><img src="{{gen_res}}" alt="Result Photo"> </center>
+<p style="text-align: center; background-color: black; color: yellowgreen;">This factor encapsulates the information on how active the processed video is
+    . It is calculated by using the formula:- (Total Active Frames in Video/ Total Frames in Video). <br>
+    <b><i>Interest Ratio</i></b>:- {{Interesting_ratio}}</p>
+
+{% endblock %}
